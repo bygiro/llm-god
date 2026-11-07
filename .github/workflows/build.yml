@@ -28,6 +28,9 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
+        env:
+          ELECTRON_GET_USE_PROXY: 'true'
+          GLOBAL_AGENT_HTTP_PROXY: http://egress-proxy:3128
         run: npm ci
 
       - name: Run tests
@@ -62,7 +65,15 @@ jobs:
           node-version: "20"
           cache: "npm"
 
+      - name: Install dependencies via Dell egress proxy
+        if: matrix.os == 'cgos-local-linux'
+        env:
+          ELECTRON_GET_USE_PROXY: 'true'
+          GLOBAL_AGENT_HTTP_PROXY: http://egress-proxy:3128
+        run: npm ci
+
       - name: Install dependencies
+        if: matrix.os != 'cgos-local-linux'
         run: npm ci
 
       - name: Build application
