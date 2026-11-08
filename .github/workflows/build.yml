@@ -15,7 +15,7 @@ permissions:
 jobs:
   test:
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: cgos-local-linux
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
@@ -40,15 +40,15 @@ jobs:
     needs: test
     strategy:
       matrix:
-        os: [cgos-llm-god-windows, cgos-local-linux, cgos-llm-god-macos]
+        os: [windows-latest, ubuntu-latest, macos-latest]
         include:
-          - os: cgos-llm-god-windows
+          - os: windows-latest
             artifact_name: Windows
             artifact_path: out/make/squirrel.windows/x64
-          - os: cgos-local-linux
+          - os: ubuntu-latest
             artifact_name: Linux
             artifact_path: out/make
-          - os: cgos-llm-god-macos
+          - os: macos-latest
             artifact_name: macOS
             artifact_path: out/make
 
@@ -66,14 +66,14 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies via Dell egress proxy
-        if: matrix.os == 'cgos-local-linux'
+        if: matrix.os == 'ubuntu-latest'
         env:
           ELECTRON_GET_USE_PROXY: 'true'
           GLOBAL_AGENT_HTTP_PROXY: http://egress-proxy:3128
         run: npm ci
 
       - name: Install dependencies
-        if: matrix.os != 'cgos-local-linux'
+        if: matrix.os != 'ubuntu-latest'
         run: npm ci
 
       - name: Build application
@@ -90,7 +90,7 @@ jobs:
 
   release:
     needs: build
-    runs-on: cgos-local-linux
+    runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master')
     permissions:
       contents: write
