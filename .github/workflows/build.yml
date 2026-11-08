@@ -9,8 +9,12 @@ on:
     branches: [master]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   test:
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
 
     steps:
@@ -24,10 +28,13 @@ jobs:
           cache: "npm"
 
       - name: Install dependencies
+        env:
+          ELECTRON_GET_USE_PROXY: 'true'
+          GLOBAL_AGENT_HTTP_PROXY: http://egress-proxy:3128
         run: npm ci
 
       - name: Run tests
-        run: npm test
+        run: npm test -- --runInBand
 
   build:
     needs: test
@@ -46,6 +53,7 @@ jobs:
             artifact_path: out/make
 
     runs-on: ${{ matrix.os }}
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - name: Checkout code
@@ -57,7 +65,15 @@ jobs:
           node-version: "20"
           cache: "npm"
 
+      - name: Install dependencies via Dell egress proxy
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          ELECTRON_GET_USE_PROXY: 'true'
+          GLOBAL_AGENT_HTTP_PROXY: http://egress-proxy:3128
+        run: npm ci
+
       - name: Install dependencies
+        if: matrix.os != 'ubuntu-latest'
         run: npm ci
 
       - name: Build application
@@ -75,7 +91,9 @@ jobs:
   release:
     needs: build
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    if: startsWith(github.ref, 'refs/tags/') || (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/master')
+    permissions:
+      contents: write
 
     steps:
       - name: Download all artifacts
